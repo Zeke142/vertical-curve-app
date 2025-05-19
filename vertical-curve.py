@@ -3,10 +3,10 @@ import numpy as np
 import pandas as pd
 from datetime import datetime
 
-st.set_page_config(page_title="DirtHub | Vertical Curve Solver", layout="centered")
+st.set_page_config(page_title="DirtHub Tools: Vertical Curve Designer", layout="centered")
 
-st.title("DirtHub | Vertical Curve Solver")
-st.caption("“Why carry an elephant on your back, when you can put a mouse in your pocket”")
+st.title("DirtHub Tools: Vertical Curve Designer")
+st.caption("“Engineered for real-world grading challenges.”")
 
 # Input Mode Selection
 input_mode = st.radio("Choose Input Method:", ("Elevation-Based", "Grade-Based"))
