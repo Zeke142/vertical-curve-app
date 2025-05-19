@@ -5,7 +5,7 @@ from datetime import datetime
 
 st.set_page_config(page_title="Zeke's Vertical Curve App", layout="centered")
 
-st.title("Zeke’s Vertical Curve App")
+st.title("DirtHub | Vertical Curve Solver")
 st.caption("“Ten toes down!”")
 
 # Input Mode Selection
