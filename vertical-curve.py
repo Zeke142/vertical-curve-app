@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 from datetime import datetime
 
-st.set_page_config(page_title="Zeke's Vertical Curve App", layout="centered")
+st.set_page_config(page_title="DirtHub | Vertical Curve Solver", layout="centered")
 
 st.title("DirtHub | Vertical Curve Solver")
 st.caption("“Ten toes down!”")
