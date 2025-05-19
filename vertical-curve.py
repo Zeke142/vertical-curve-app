@@ -6,7 +6,7 @@ from datetime import datetime
 st.set_page_config(page_title="DirtHub | Vertical Curve Solver", layout="centered")
 
 st.title("DirtHub | Vertical Curve Solver")
-st.caption("“Ten toes down!”")
+st.caption("“Why carry an elephant on your back, when you can put a mouse in your pocket”")
 
 # Input Mode Selection
 input_mode = st.radio("Choose Input Method:", ("Elevation-Based", "Grade-Based"))
