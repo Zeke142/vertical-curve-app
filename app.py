@@ -3,129 +3,107 @@ import numpy as np
 import pandas as pd
 from datetime import datetime
 
-# -----------------------------
-# Page Setup
-# -----------------------------
-st.set_page_config(page_title="Vertical Curve Calculator", layout="centered")
-st.title("Vertical Curve Calculator")
-st.caption("Designed for Civil Engineers | “Ten toes down!”")
+st.set_page_config(page_title="Zeke's Vertical Curve App", layout="centered")
 
-# -----------------------------
-# Email Waitlist Feature
-# -----------------------------
-def collect_email():
-    st.markdown("### Join the Beta List")
-    email = st.text_input("Enter your email for updates and Pro access")
+st.title("Zeke’s Vertical Curve App")
+st.caption("“Ten toes down!”")
 
-    if st.button("Join Waitlist"):
-        if "@" in email and "." in email:
-            with open("emails.txt", "a") as f:
-                f.write(f"{email} - {datetime.now()}\n")
-            st.success("You're on the list!")
-        else:
-            st.error("Please enter a valid email address.")
+# Input Mode Selection
+input_mode = st.radio("Choose Input Method:", ("Elevation-Based", "Grade-Based"))
 
-collect_email()
-st.divider()
+# Elevation-Based Input Mode
+if input_mode == "Elevation-Based":
+    st.subheader("Elevation-Based Inputs")
 
-# -----------------------------
-# Curve Input Handling
-# -----------------------------
-def get_inputs():
-    input_mode = st.radio("Select Input Type:", ("Elevation-Based", "Grade-Based"))
+    bvc_station = st.number_input("BVC Station", step=1.0, format="%.2f")
+    bvc_elevation = st.number_input("BVC Elevation", step=0.01)
 
-    if input_mode == "Elevation-Based":
-        st.subheader("Elevation-Based Inputs")
-        bvc_station = st.number_input("BVC Station", value=0.0)
-        bvc_elevation = st.number_input("BVC Elevation", value=0.0)
-        evc_station = st.number_input("EVC Station", value=100.0)
-        evc_elevation = st.number_input("EVC Elevation", value=10.0)
+    evc_station = st.number_input("EVC Station", step=1.0, format="%.2f")
+    evc_elevation = st.number_input("EVC Elevation", step=0.01)
 
-        pvi_station = st.number_input("PVI Station", value=(bvc_station + evc_station) / 2)
-        pvi_elevation = st.number_input("PVI Elevation", value=(bvc_elevation + evc_elevation) / 2)
+    pvi_station = st.number_input("PVI Station", value=(bvc_station + evc_station) / 2, step=1.0, format="%.2f")
+    pvi_elevation = st.number_input("PVI Elevation", step=0.01)
 
-        length = evc_station - bvc_station
-        g1 = (pvi_elevation - bvc_elevation) / (pvi_station - bvc_station) * 100 if pvi_station != bvc_station else 0.0
-        g2 = (evc_elevation - pvi_elevation) / (evc_station - pvi_station) * 100 if evc_station != pvi_station else 0.0
+    curve_length = evc_station - bvc_station
+    g1 = ((pvi_elevation - bvc_elevation) / (pvi_station - bvc_station) * 100) if pvi_station != bvc_station else 0.0
+    g2 = ((evc_elevation - pvi_elevation) / (evc_station - pvi_station) * 100) if evc_station != pvi_station else 0.0
 
+else:
+    st.subheader("Grade-Based Inputs")
+
+    bvc_station = st.number_input("BVC Station", step=1.0, format="%.2f")
+    evc_station = st.number_input("EVC Station", step=1.0, format="%.2f")
+    curve_length = evc_station - bvc_station
+
+    bvc_elevation = st.number_input("BVC Elevation", step=0.01)
+    g1 = st.number_input("Grade In (g₁) [%]", step=0.01, format="%.2f")
+    g2 = st.number_input("Grade Out (g₂) [%]", step=0.01, format="%.2f")
+
+# Common Calculations
+a_value = g2 - g1
+
+# Optional K-value
+use_custom_k = st.checkbox("Enter custom K-value?")
+if use_custom_k:
+    k_value = st.number_input("K-value", step=0.01)
+else:
+    if a_value == 0 or curve_length == 0:
+        k_value = "Undefined (check inputs)"
     else:
-        st.subheader("Grade-Based Inputs")
-        bvc_station = st.number_input("BVC Station", value=0.0)
-        evc_station = st.number_input("EVC Station", value=100.0)
-        bvc_elevation = st.number_input("BVC Elevation", value=0.0)
-        g1 = st.number_input("Grade In (g₁) [%]", value=2.0)
-        g2 = st.number_input("Grade Out (g₂) [%]", value=-2.0)
-        length = evc_station - bvc_station
+        k_value = curve_length / abs(a_value)
 
-    return {
-        "mode": input_mode,
-        "bvc_station": bvc_station,
-        "bvc_elevation": bvc_elevation,
-        "evc_station": evc_station,
-        "g1": g1,
-        "g2": g2,
-        "length": length
-    }
+# Display Summary
+st.header("Results")
+st.markdown(f"**Curve Length (L):** {curve_length:.4f} ft")
+st.markdown(f"**Grade In (g₁):** {g1:.4f} %")
+st.markdown(f"**Grade Out (g₂):** {g2:.4f} %")
+st.markdown(f"**A = g₂ - g₁:** {a_value:.4f} %")
+st.markdown(f"**K-value:** {k_value if isinstance(k_value, str) else f'{k_value:.4f}'}")
 
-inputs = get_inputs()
+# Elevation and Grade at Any Station
+st.subheader("Elevation at Any Station")
+station_input = st.number_input("Enter Station", step=1.0, format="%.2f")
 
-# -----------------------------
-# Curve Calculation
-# -----------------------------
-def compute_profile(inputs):
-    a = inputs["g2"] - inputs["g1"]
-    g1_dec = inputs["g1"] / 100
-    x_vals = np.linspace(0, inputs["length"], 100) if inputs["length"] > 0 else np.array([0])
-    y_vals = inputs["bvc_elevation"] + g1_dec * x_vals + (a / 100) * (x_vals ** 2) / (2 * inputs["length"]) if inputs["length"] > 0 else np.array([inputs["bvc_elevation"]])
-    return x_vals, y_vals, a
+if bvc_station <= station_input <= evc_station:
+    x = station_input - bvc_station  # horizontal distance from BVC
+    g1_decimal = g1 / 100
 
-x_vals, y_vals, a = compute_profile(inputs)
+    if curve_length != 0:
+        elevation = bvc_elevation + g1_decimal * x + (a_value / 100) * x**2 / (2 * curve_length)
+        grade_at_x = g1 + (a_value * x / curve_length)
+    else:
+        elevation = bvc_elevation
+        grade_at_x = g1
 
-# -----------------------------
-# Output Display
-# -----------------------------
-def display_summary(inputs, a):
-    st.header("Curve Summary")
-    st.markdown(f"**Curve Length (L):** {inputs['length']:.2f} ft")
-    st.markdown(f"**Grade In (g₁):** {inputs['g1']:.2f} %")
-    st.markdown(f"**Grade Out (g₂):** {inputs['g2']:.2f} %")
-    st.markdown(f"**A = g₂ - g₁:** {a:.2f} %")
+    st.markdown(f"**Elevation at station {station_input:.2f}:** {elevation:.4f} ft")
+    st.markdown(f"**Grade at station {station_input:.2f}:** {grade_at_x:.4f} %")
+else:
+    st.warning("Station is outside the limits of the vertical curve.")
 
-    k_val = inputs['length'] / abs(a) if a != 0 else None
-    st.markdown(f"**K-value:** {k_val:.2f}" if k_val else "**K-value:** Undefined")
+# --- Plot Curve Profile ---
+st.subheader("Vertical Curve Profile")
+if curve_length > 0:
+    x_vals = np.linspace(0, curve_length, 100)
+    g1_decimal = g1 / 100
+    y_vals = bvc_elevation + g1_decimal * x_vals + (a_value / 100) * x_vals**2 / (2 * curve_length)
 
-    st.markdown("### Elevation Profile")
     df = pd.DataFrame({
-        "Distance from BVC (ft)": x_vals,
+        "Station (ft)": x_vals + bvc_station,
         "Elevation (ft)": y_vals
     })
-    st.line_chart(df.set_index("Distance from BVC (ft)"))
+    st.line_chart(df.set_index("Station (ft)"))
+else:
+    st.info("Please enter valid BVC and EVC stations to generate the graph.")
 
-display_summary(inputs, a)
+# --- Email Capture Form ---
+st.markdown("---")
+st.subheader("Join the Beta List")
+email = st.text_input("Enter your email to get updates and Pro access later")
 
-# -----------------------------
-# Elevation at Specific Station
-# -----------------------------
-def evaluate_station(inputs, a):
-    st.subheader("Elevation at Any Station")
-    station = st.number_input("Enter Station to Evaluate", value=inputs["bvc_station"] + inputs["length"] / 2)
-
-    if inputs["bvc_station"] <= station <= inputs["evc_station"] and inputs["length"] > 0:
-        x = station - inputs["bvc_station"]
-        g1_dec = inputs["g1"] / 100
-        elevation = inputs["bvc_elevation"] + g1_dec * x + (a / 100) * x**2 / (2 * inputs["length"])
-        grade = inputs["g1"] + a * x / inputs["length"]
-
-        st.markdown(f"**Elevation at {station:.2f} ft:** {elevation:.4f} ft")
-        st.markdown(f"**Grade at {station:.2f} ft:** {grade:.4f} %")
+if st.button("Join Waitlist"):
+    if "@" in email and "." in email:
+        with open("emails.txt", "a") as f:
+            f.write(f"{email} - {datetime.now()}\n")
+        st.success("You're on the list!")
     else:
-        st.warning("Station is outside the curve limits or curve length is invalid.")
-
-evaluate_station(inputs, a)
-
-# -----------------------------
-# Placeholder for Export
-# -----------------------------
-st.divider()
-st.markdown("#### Export Results (Pro Feature)")
-st.button("Export to PDF or CSV (Coming Soon!)")
+        st.error("Please enter a valid email.")
